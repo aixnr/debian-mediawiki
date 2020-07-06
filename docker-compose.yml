@@ -1,0 +1,44 @@
+version: '3.2'
+services:
+  mediawiki:
+    image: debian-mediawiki
+    container_name: mediawiki
+    restart: always
+    ports:
+      - 80:80
+      - 9001:9001
+    links:
+      - pg
+    depends_on:
+      - pg
+    volumes:
+      - wikidata:/var/www/mediawiki
+    environment:
+      MEDIAWIKI_DB_TYPE: postgres
+      MEDIAWIKI_DB_HOST: pg
+      MEDIAWIKI_DB_USER: wiki
+      MEDIAWIKI_DB_PASSWORD: wiki
+      MEDIAWIKI_DB_NAME: wiki
+  pg:
+    image: postgres:12
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: wiki
+      POSTGRES_USER: wiki
+      POSTGRES_PASSWORD: wiki
+    volumes:
+      - wikidb:/var/lib/postgresql/data
+  #parsoid:
+  #  image: alpine-parsoid
+  #  container_name: parsoid
+  #  restart: always
+  #  ports: 
+  #    - 8000:8000
+  #  volumes:
+  #    - parsoid:/var/lib/parsoid
+
+volumes:
+  wikidata:
+  wikidb:
+  #parsoid:

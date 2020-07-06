@@ -1,0 +1,60 @@
+FROM debian:stable
+MAINTAINER Aizan Fahri <aizanfahri@gmail.com>
+
+RUN apt update && \
+    apt -y upgrade && \
+    apt install -y openssh-client wget nginx supervisor curl git diffutils unzip imagemagick mcrypt && \
+    apt install -y php php-common php7.3-fpm php-apcu php-intl php-mbstring php-xml php-pgsql php-zip postgresql && \
+    apt install -y php-curl php-gd php-memcached php-xml php-json php-dompdf php-phar-io-manifest php-tokenizer
+
+# Clear package cache
+RUN apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
+
+# Install MediaWiki via Git
+ENV VERSION REL1_34
+RUN mkdir -p /var/www && \
+    git clone --depth 1 -b $VERSION \
+    https://gerrit.wikimedia.org/r/mediawiki/core var/www/mediawiki && \
+    cd /var/www/mediawiki && \
+    git submodule update --init && \
+    composer install --no-dev
+
+# Install VisualEditor Extension
+RUN cd /var/www/mediawiki/extensions && \
+    git clone --depth 1 -b $VERSION \
+    https://gerrit.wikimedia.org/r/VisualEditor/VisualEditor && \
+    cd VisualEditor && git submodule update --init
+
+# Important Directories
+RUN mkdir -p /etc/nginx && \
+    mkdir -p /run/nginx && \
+    mkdir -p /var/log/supervisor && \
+    mkdir -p /var/run/php
+
+# Expose ports for nginx and supervisord
+EXPOSE 80
+EXPOSE 9001
+
+# Copy supervisord config
+ADD configs/supervisord.conf /etc/supervisord.conf
+
+# Copy ngix config
+RUN rm -Rf /etc/nginx/nginx.conf
+ADD configs/nginx.conf /etc/nginx/nginx.conf
+
+# Copy php-fpm config
+RUN rm -Rf /etc/php/7.3/fpm/php-fpm.conf
+ADD configs/php-fpm.conf /etc/php/7.3/fpm/php-fpm.conf
+
+# User management to match host's 1000 for volume access
+RUN addgroup --gid 1000 --system www && \
+    adduser --no-create-home --gecos '' --disabled-password --uid 1000 --ingroup www www && \
+    chown -R www /var/www/mediawiki && \
+    mkdir -p /var/www/data && chmod a+w /var/www/data
+
+# Set entrypoint
+ENTRYPOINT ["/usr/bin/supervisord", "-nc", "/etc/supervisord.conf"]
