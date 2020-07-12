@@ -1,39 +1,30 @@
 FROM debian:stable
 MAINTAINER Aizan Fahri <aizanfahri@gmail.com>
 
+# Base installation
 RUN apt update && \
     apt -y upgrade && \
-    apt install -y openssh-client wget nginx supervisor curl git diffutils unzip imagemagick mcrypt && \
-    apt install -y php php-common php7.3-fpm php-apcu php-intl php-mbstring php-xml php-pgsql php-zip postgresql && \
-    apt install -y php-curl php-gd php-memcached php-xml php-json php-dompdf php-phar-io-manifest php-tokenizer
-
-# Clear package cache
-RUN apt clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
-
-# Install MediaWiki via Git
-ENV VERSION REL1_34
-RUN mkdir -p /var/www && \
-    git clone --depth 1 -b $VERSION \
-    https://gerrit.wikimedia.org/r/mediawiki/core var/www/mediawiki && \
-    cd /var/www/mediawiki && \
-    git submodule update --init && \
-    composer install --no-dev
-
-# Install VisualEditor Extension
-RUN cd /var/www/mediawiki/extensions && \
-    git clone --depth 1 -b $VERSION \
-    https://gerrit.wikimedia.org/r/VisualEditor/VisualEditor && \
-    cd VisualEditor && git submodule update --init
+    apt install -y \
+    nginx supervisor curl unzip imagemagick mcrypt \
+    php php-common php7.3-fpm php-apcu php-intl php-mbstring php-xml php-pgsql php-zip \
+    php-curl php-gd php-memcached php-xml php-json php-dompdf php-phar-io-manifest php-tokenizer && \
+    apt clean && rm -rf /var/lib/apt/lists/*
 
 # Important Directories
 RUN mkdir -p /etc/nginx && \
+    mkdir -p /var/www/ && \
     mkdir -p /run/nginx && \
     mkdir -p /var/log/supervisor && \
     mkdir -p /var/run/php
+
+# Install from tarball
+ENV MEDIAWIKI_MAJOR_VERSION 1.34
+ENV MEDIAWIKI_BRANCH REL1_34
+ENV MEDIAWIKI_VERSION 1.34.2
+RUN curl -fSL "https://releases.wikimedia.org/mediawiki/${MEDIAWIKI_MAJOR_VERSION}/mediawiki-${MEDIAWIKI_VERSION}.tar.gz" -o mediawiki.tar.gz && \
+    tar -xzf mediawiki.tar.gz && \
+    mv mediawiki-${MEDIAWIKI_VERSION} /var/www/mediawiki && \
+    rm mediawiki.tar.gz
 
 # Expose ports for nginx and supervisord
 EXPOSE 80
