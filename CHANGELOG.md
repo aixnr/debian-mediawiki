@@ -22,3 +22,5 @@ $ docker build -f Dockerfiles/Dockerfile-mwiki -t debian-mediawiki .
 ### 2020-07-12: Change from Git Clone to Tarball
 
 I was not quite satisfied with the large image size of 1.52 GB. So I studied, implement some Docker best practices. I found out that with the `git` install method, it caused the image size to balloon up to 1.5 GB. So I replaced it with tarball installation method and the final image was below 700 MB. The downside is that this way I could not access the latest developmental build, which is fine for now.
+
+In anticipation for the built-in Parsoid (ported into PHP from NodeJS, slated in 2020), I am removing `Dockerfile-parsoid`.
