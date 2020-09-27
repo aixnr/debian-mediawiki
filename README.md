@@ -55,3 +55,13 @@ $ docker stop $(docker ps -a q)
 # Delete them all
 $ docker rm $(docker ps -a -q)
 ```
+
+## Upgrading the Mediawiki
+
+Because I run my Mediawiki with `docker-compose`, here are the steps:
+
+1. Run `docker pull`, or `docker build` to fetch/generate the new image
+2. Bring containers down with `docker-compose down`
+3. Edit `docker-compose.yml`, if necessary (e.g. image name-change)
+4. Run with `docker-compose up -d`
+5. Access `mediawiki` container through shell access, go into mediawiki root installation folder (at `var/www/mediawiki`), then go into `maintenance` folder, then run `php update.php`

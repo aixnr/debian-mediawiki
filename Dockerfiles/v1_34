@@ -19,7 +19,6 @@ RUN mkdir -p /etc/nginx && \
 
 # Install from tarball
 ENV MEDIAWIKI_MAJOR_VERSION 1.34
-ENV MEDIAWIKI_BRANCH REL1_34
 ENV MEDIAWIKI_VERSION 1.34.2
 RUN curl -fSL "https://releases.wikimedia.org/mediawiki/${MEDIAWIKI_MAJOR_VERSION}/mediawiki-${MEDIAWIKI_VERSION}.tar.gz" -o mediawiki.tar.gz && \
     tar -xzf mediawiki.tar.gz && \
