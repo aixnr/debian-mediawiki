@@ -6,7 +6,15 @@ Revamping my [previous work with Alpine](https://github.com/aixnr/alpine-mediawi
 
 Install Docker and `docker-compose` according to the official installation guide.
 
-## Building Custom MediaWiki Docker Image
+## Building Image
+
+Example: building image for MediaWiki `v1.36.0`.
+
+```shell
+$ docker build --tag=debian-mediawiki:1_36 --file=Dockerfiles/v1_36 .
+```
+
+## Deploying a MediaWiki Instance
 
 Locate the `docker-compose.yml` then run the following command in the same directory.
 

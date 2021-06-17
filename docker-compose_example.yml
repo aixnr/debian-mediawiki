@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   mediawiki:
-    image: debian-mediawiki
+    image: debian-mediawiki:1_36
     container_name: mediawiki
     restart: always
     ports:

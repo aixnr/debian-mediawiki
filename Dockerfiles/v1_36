@@ -1,0 +1,50 @@
+FROM debian:stable
+MAINTAINER Aizan Fahri <aizanfahri@gmail.com>
+
+# Base installation
+RUN apt update && \
+    apt -y upgrade && \
+    apt install -y \
+    nginx supervisor curl unzip imagemagick mcrypt \
+    php php-common php7.3-fpm php-apcu php-intl php-mbstring php-xml php-pgsql php-zip \
+    php-curl php-gd php-memcached php-xml php-json php-dompdf php-phar-io-manifest php-tokenizer && \
+    apt clean && rm -rf /var/lib/apt/lists/*
+
+# Important Directories
+RUN mkdir -p /etc/nginx && \
+    mkdir -p /var/www/ && \
+    mkdir -p /run/nginx && \
+    mkdir -p /var/log/supervisor && \
+    mkdir -p /var/run/php
+
+# Install from tarball
+ENV MEDIAWIKI_MAJOR_VERSION 1.36
+ENV MEDIAWIKI_VERSION 1.36.0
+RUN curl -fSL "https://releases.wikimedia.org/mediawiki/${MEDIAWIKI_MAJOR_VERSION}/mediawiki-${MEDIAWIKI_VERSION}.tar.gz" -o mediawiki.tar.gz && \
+    tar -xzf mediawiki.tar.gz && \
+    mv mediawiki-${MEDIAWIKI_VERSION} /var/www/mediawiki && \
+    rm mediawiki.tar.gz
+
+# Expose ports for nginx and supervisord
+EXPOSE 80
+EXPOSE 9001
+
+# Copy supervisord config
+ADD configs/supervisord.conf /etc/supervisord.conf
+
+# Copy ngix config
+RUN rm -Rf /etc/nginx/nginx.conf
+ADD configs/nginx.conf /etc/nginx/nginx.conf
+
+# Copy php-fpm config
+RUN rm -Rf /etc/php/7.3/fpm/php-fpm.conf
+ADD configs/php-fpm.conf /etc/php/7.3/fpm/php-fpm.conf
+
+# User management to match host's 1000 for volume access
+RUN addgroup --gid 1000 --system www && \
+    adduser --no-create-home --gecos '' --disabled-password --uid 1000 --ingroup www www && \
+    chown -R www /var/www/mediawiki && \
+    mkdir -p /var/www/data && chmod a+w /var/www/data
+
+# Set entrypoint
+ENTRYPOINT ["/usr/bin/supervisord", "-nc", "/etc/supervisord.conf"]
