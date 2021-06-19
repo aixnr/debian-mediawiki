@@ -11,6 +11,8 @@ Need to keep track of things so that I could remember better why I changed thing
 5. [2020-09-26: Testing 1.35.0 (Stable Release)](#2020-09-26-testing-1.35.0-stable-release)
 6. [2020-09-26: Testing Back-Up](#2020-09-26-testing-back-up)
 7. [2021-06-16: Testing v1.36.0](#2021-06-16-testing-v1.36.0)
+8. [2021-06-18: Debugging VisualEditor](#2021-06-18-debugging-visualeditor)
+9. [2021-06-18: Testing Backup and Restore](#2021-06-18-testing-backup-and-restore)
 
 ***
 
@@ -18,7 +20,7 @@ Need to keep track of things so that I could remember better why I changed thing
 
 - [ ] Adding `Makefile` to simplify the build process, with variable management to select which version of MediaWiki at image generation time. Currently, the `ENV` variable within `Dockerfile` is buried quite deep inside.
 - [ ] Add script to perform backup, and figure out way to automate it.
-- [ ] Test backup.
+- [X] Test backup and restore from v1.35 to v1.36.
 - [X] Run the development version 1.35 to test the Parsoid/PHP with VisualEditor.
 - [X] Add v1.36
 
@@ -91,3 +93,94 @@ Here, `postgres` is the name of the container. Both commands `dropdb` and `creat
 Current latest stable release.
 
 Looks like the same hack as I did on `2020-09-26` was required to get the Parsoid and VisualEditor properly working (error with `curl`).
+
+Somehow, this feels like a Docker-related issue.
+
+## 2021-06-18: Debugging VisualEditor
+
+```php
+wfLoadExtension( 'Parsoid', 'vendor/wikimedia/parsoid/extension.json' );
+$wgVirtualRestConfig['modules']['parsoid'] = array(
+	'url' => 'http://localhost/rest.php',
+);
+```
+
+This seems to be the minimal configuration needed to be able to use VisualEditor when running MediaWiki `v1.36` in a Docker container. So yeah, it does feel like a Docker-related problem now.
+
+## 2021-06-18: Testing Backup and Restore
+
+Dumping SQL file from the `v1.35` and restoring it to `v1.36`. This is for a planned migration from `v1.35` to `v1.36`.
+
+First, let's *visit* the container for a quick tour.
+
+```shell
+docker exec -it mediawiki_136 /bin/bash
+cd /var/www/mediawiki/maintenance
+```
+
+Scripts related to maintenance can be found inside that `maintenance` folder. The one that we are interested in is the `importDump.php` to import the XML-dump file from previous/other MediaWiki installation.
+
+I issued the following comment inside the `maintenance` folder on the Docker container.
+
+```shell
+php importDump.php --dry-run
+```
+
+And I was greeted with the following error on the console:
+
+```
+PHP Fatal error:  Uncaught Exception: Unable to open file vendor/wikimedia/parsoid/extension.json: filemtime(): stat failed for vendor/wikimedia/parsoid/extension.json in /var/www/mediawiki/includes/registration/ExtensionRegistry.php:176
+Stack trace:
+#0 /var/www/mediawiki/includes/GlobalFunctions.php(52): ExtensionRegistry->queue('vendor/wikimedi...')
+#1 /var/www/mediawiki/LocalSettings.php(171): wfLoadExtension('Parsoid', 'vendor/wikimedi...')
+#2 /var/www/mediawiki/includes/Setup.php(145): require_once('/var/www/mediaw...')
+#3 /var/www/mediawiki/maintenance/doMaintenance.php(90): require_once('/var/www/mediaw...')
+#4 /var/www/mediawiki/maintenance/importDump.php(358): require_once('/var/www/mediaw...')
+#5 {main}
+  thrown in /var/www/mediawiki/includes/registration/ExtensionRegistry.php on line 176
+```
+
+After disabling the `parsoid` extension through the `LocalSettings.php`, the `importDump.php` script was working again. Now, let's try import from outside of the container, with the XML dump file present in the same folder.
+
+**!! WARNING !!** Similarly, backing up when `parsoid` is running will not work. Well, this is annoying.
+
+```bash
+# First, try dry-run
+docker exec -i mediawiki_136 php /var/www/mediawiki/maintenance/importDump.php --dry-run
+```
+
+Curiously, it took time... that I had to `Ctrl` + `c` to stop it. To be on the safe side, I am going to upload the XML dump file by using `docker cp` command.
+
+```bash
+# Copy, from host to container
+docker cp dump.xml mediawiki_136:/dump.xml
+
+# Inside the run after docker exec -it, test the backup
+php /var/www/mediawiki/maintenance/importDump.php --dry-run
+
+# If the dry-run command above worked, test it with the uploaded xml
+php /var/www/mediawiki/maintenance/importDump.php < dump.xml
+```
+
+Received error when importing, did not seem that the import happened. Went back to the `mediawiki` container (running `v1.35`) and ran `rebuildrecentchanges.php` and `initSiteStats.php` inside the `maintenance` folder (both were run with `parsoid` turned off).
+
+
+**!! NOTE !!** Even with steps above taken before dumping XML, the import did not work.
+
+**!! NOTE !!** Well, looks like we will have to do the backup strategy with SQL.
+
+Performed SQL operation to restore `dump.sql` with strategy devised on `2021-06-16`. Greeted with an error on the browser after completion: `Fatal exception of type "Wikimedia\Rdbms\DBQueryError"`
+
+The advise is to run `update.php` (with `parsoid` turned off).
+
+```bash
+docker exec -i mediawiki_136 php /var/www/maintenance/update.php
+```
+
+Lmao, I got this error message now: `Can not upgrade from versions older than 1.27, please upgrade to that version or later first`.
+
+Well, this is frustrating.
+
+**!! NOTE !!** Okay found the problem: by default, `v1.36` installation uses `mediawiki` as the schema, while I had `wiki` for my `v1.35` installation. By re-installing `v1.36` with `wiki` as the schema, the `update.php` script ran just fine after importing the SQL.
+
+Testing ended successfully.
