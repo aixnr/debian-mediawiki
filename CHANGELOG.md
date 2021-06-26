@@ -7,12 +7,13 @@ Need to keep track of things so that I could remember better why I changed thing
 1. [To-Do](#to-do)
 2. [2020-07-05: Project Started](#2020-07-05-project-started)
 3. [2020-07-12: Change from Git Clone to Tarball](#2020-07-12-change-from-git-clone-to-tarball)
-4. [2020-08-01: Testing 1.35 RC0](#2020-08-01-testing-1.35-rc0)
-5. [2020-09-26: Testing 1.35.0 (Stable Release)](#2020-09-26-testing-1.35.0-stable-release)
+4. [2020-08-01: Testing 1.35 RC0](#2020-08-01-testing-135-rc0)
+5. [2020-09-26: Testing 1.35.0 (Stable Release)](#2020-09-26-testing-1350-stable-release)
 6. [2020-09-26: Testing Back-Up](#2020-09-26-testing-back-up)
-7. [2021-06-16: Testing v1.36.0](#2021-06-16-testing-v1.36.0)
+7. [2021-06-16: Testing v1.36.0](#2021-06-16-testing-v1360)
 8. [2021-06-18: Debugging VisualEditor](#2021-06-18-debugging-visualeditor)
 9. [2021-06-18: Testing Backup and Restore](#2021-06-18-testing-backup-and-restore)
+10. [2021-06-26: Testing v1.36.1](#2021-06-26-testing-v1361)
 
 ***
 
@@ -23,6 +24,7 @@ Need to keep track of things so that I could remember better why I changed thing
 - [X] Test backup and restore from v1.35 to v1.36.
 - [X] Run the development version 1.35 to test the Parsoid/PHP with VisualEditor.
 - [X] Add v1.36
+- [X] Add v1.36.1, with modular installer base
 
 ***
 
@@ -184,3 +186,7 @@ Well, this is frustrating.
 **!! NOTE !!** Okay found the problem: by default, `v1.36` installation uses `mediawiki` as the schema, while I had `wiki` for my `v1.35` installation. By re-installing `v1.36` with `wiki` as the schema, the `update.php` script ran just fine after importing the SQL.
 
 Testing ended successfully.
+
+## 2021-06-26: Testing v1.36.1
+
+Separated the installation script `scripts/v1_36_1.sh` from `Dockerfiles/v1_36_1`. Now using `debian:stable-slim` as the base image. No significant improvement in term of the container image size, but I like the modular approach here.

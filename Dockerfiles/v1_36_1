@@ -1,0 +1,30 @@
+FROM debian:stable-slim
+MAINTAINER Aizan Fahri <aizanfahri@gmail.com>
+
+# Run installation script
+COPY scripts/v1_36_1.sh /install_script.sh
+RUN bash /install_script.sh && rm /install_script.sh
+
+# Expose ports for nginx and supervisord
+EXPOSE 80
+EXPOSE 9001
+
+# Copy supervisord config
+ADD configs/supervisord.conf /etc/supervisord.conf
+
+# Copy ngix config
+RUN rm -Rf /etc/nginx/nginx.conf
+ADD configs/nginx.conf /etc/nginx/nginx.conf
+
+# Copy php-fpm config
+RUN rm -Rf /etc/php/7.3/fpm/php-fpm.conf
+ADD configs/php-fpm.conf /etc/php/7.3/fpm/php-fpm.conf
+
+# User management to match host's 1000 for volume access
+RUN addgroup --gid 1000 --system www && \
+    adduser --no-create-home --gecos '' --disabled-password --uid 1000 --ingroup www www && \
+    chown -R www /var/www/mediawiki && \
+    mkdir -p /var/www/data && chmod a+w /var/www/data
+
+# Set entrypoint
+ENTRYPOINT ["/usr/bin/supervisord", "-nc", "/etc/supervisord.conf"]
