@@ -41,3 +41,13 @@ docker exec -i $MEDIAWIKI php /var/www/mediawiki/maintenance/update.php
 ```
 
 Where the `$POSTGRES` and `$MEDIAWIKI` are the PostgreSQL and Mediawiki container, respectively.
+
+
+## Removing Old Revisions
+
+This is definitely going to cause data loss. I would use this to reduce the size of the database before migrating.
+
+```bash
+docker exec -i $MEDIAWIKI php /var/www/mediawiki/maintenance/deleteArchivedRevisions.php --delete
+docker exec -i $MEDIAWIKI php /var/www/mediawiki/maintenance/deleteOldRevisions.php --delete
+```
