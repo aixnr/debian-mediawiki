@@ -40,8 +40,32 @@ docker exec -i $POSTRGRES psql -d wiki -U wiki < backup/<sql dump file>
 docker exec -i $MEDIAWIKI php /var/www/mediawiki/maintenance/update.php
 ```
 
-Where the `$POSTGRES` and `$MEDIAWIKI` are the PostgreSQL and Mediawiki container, respectively.
+Where the `$POSTGRES` and `$MEDIAWIKI` are the PostgreSQL and Mediawiki container, respectively. Here is a bash script; run `chmod +x docker-backup.sh` and then `./docker-backup.sh sql` to perform backup.
 
+```bash
+#!/bin/bash
+
+# Variables
+DBCONTAINER="postgres"
+USER="wiki"
+DBNAME="wiki"
+
+# PostgreSQL backup
+function sql() {
+  docker exec -t "$DBCONTAINER" pg_dump -U "$USER" "$DBNAME" > dump-sql_$(date +%Y-%m-%d"_"%H-%M).sql
+}
+
+# Main -----------------------------------------
+
+subcommand=$1
+if [ -z "$1" ]; then
+  exit
+fi
+
+case "$subcommand" in
+  sql) sql;;
+esac
+```
 
 ## Removing Old Revisions
 
